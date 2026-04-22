@@ -514,15 +514,19 @@ void CustomAudioEditor::resized()
     bottomRow.removeFromLeft (gap);
     bandsCard.setBounds (bottomRow);
 
-    layoutGrid (motionCard.getContentBounds(),
+    auto motionBounds = motionCard.getContentBounds().translated (motionCard.getX(), motionCard.getY());
+    auto toneBounds = toneCard.getContentBounds().translated (toneCard.getX(), toneCard.getY());
+    auto bandsBounds = bandsCard.getContentBounds().translated (bandsCard.getX(), bandsCard.getY());
+    auto behaviorBounds = behaviorCard.getContentBounds().translated (behaviorCard.getX(), behaviorCard.getY());
+
+    layoutGrid (motionBounds,
                 { &amountKnob, &speedKnob, &chopKnob, &sensitivityKnob, &liftKnob },
                 5);
 
-    layoutGrid (toneCard.getContentBounds(),
+    layoutGrid (toneBounds,
                 { &lowKnob, &bodyKnob, &airKnob },
                 3);
 
-    auto behaviorBounds = behaviorCard.getContentBounds();
     auto behaviorTop = behaviorBounds.removeFromTop ((behaviorBounds.getHeight() - 12) / 2);
     behaviorBounds.removeFromTop (12);
 
@@ -534,7 +538,7 @@ void CustomAudioEditor::resized()
                 { &adaptiveAlphaKnob },
                 1);
 
-    layoutGrid (bandsCard.getContentBounds(),
+    layoutGrid (bandsBounds,
                 { &lowSplitKnob, &highSplitKnob, &bandAwareToggle },
                 3);
 }
