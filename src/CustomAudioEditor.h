@@ -41,6 +41,8 @@ public:
     void paint (juce::Graphics&) override;
     void resized() override;
 
+    void updateValueLabel();
+
 private:
     juce::Label titleLabel;
     juce::Label subtitleLabel;
@@ -59,8 +61,10 @@ public:
     void resized() override;
 
 private:
+    void updateValueLabel();
     juce::Label titleLabel;
     juce::Label hintLabel;
+    juce::Label valueLabel;
     juce::Slider slider;
 };
 

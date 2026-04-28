@@ -277,8 +277,13 @@ KnobControl::KnobControl (juce::String titleText, juce::String hintText)
     styleLabel (hintLabel, 11.0f, false, textMuted);
     addAndMakeVisible (hintLabel);
 
+    valueLabel.setJustificationType (juce::Justification::centred);
+    styleLabel (valueLabel, 13.0f, true, textPrimary);
+    valueLabel.setColour (juce::Label::backgroundColourId, juce::Colour (0x20ffffff));
+    addAndMakeVisible (valueLabel);
+
     slider.setSliderStyle (juce::Slider::RotaryHorizontalVerticalDrag);
-    slider.setTextBoxStyle (juce::Slider::TextBoxBelow, false, 72, 20);
+    slider.setTextBoxStyle (juce::Slider::NoTextBox, false, 0, 0);
     slider.setRotaryParameters (juce::MathConstants<float>::pi * 1.2f,
                                 juce::MathConstants<float>::pi * 2.8f,
                                 true);
@@ -287,20 +292,35 @@ KnobControl::KnobControl (juce::String titleText, juce::String hintText)
     slider.setColour (juce::Slider::textBoxBackgroundColourId, juce::Colour (0x20ffffff));
     slider.setColour (juce::Slider::textBoxTextColourId, textPrimary);
     slider.setColour (juce::Slider::textBoxHighlightColourId, juce::Colours::transparentBlack);
+    slider.onValueChange = [this] { updateValueLabel(); };
     addAndMakeVisible (slider);
+    updateValueLabel();
+}
+
+void KnobControl::updateValueLabel()
+{
+    valueLabel.setText (slider.getTextFromValue (slider.getValue()), juce::dontSendNotification);
 }
 
 void KnobControl::setFormatter (Formatter formatter)
 {
     slider.textFromValueFunction = std::move (formatter);
+    updateValueLabel();
 }
 
 void KnobControl::resized()
 {
     auto area = getLocalBounds().reduced (4);
-    titleLabel.setBounds (area.removeFromTop (18));
-    hintLabel.setBounds (area.removeFromBottom (16));
-    slider.setBounds (area);
+    titleLabel.setBounds (area.removeFromTop (20));
+    hintLabel.setBounds (area.removeFromBottom (18));
+    auto valueArea = area.removeFromBottom (28);
+    area.removeFromBottom (6);
+
+    const auto sliderSize = juce::jmin (area.getWidth(), area.getHeight());
+    slider.setBounds (juce::Rectangle<int> (sliderSize, sliderSize).withCentre (area.getCentre()));
+
+    const auto valueWidth = juce::jmin (96, valueArea.getWidth());
+    valueLabel.setBounds (juce::Rectangle<int> (valueWidth, 24).withCentre (valueArea.getCentre()));
 }
 
 ToggleControl::ToggleControl (juce::String titleText, juce::String hintText)
@@ -379,8 +399,8 @@ CustomAudioEditor::CustomAudioEditor (RNBO::JuceAudioProcessor* p, RNBO::CoreObj
     , highSplitKnob ("High Split", "where the high band starts")
     , adaptiveAlphaKnob ("Adaptive Alpha", "smoothness of adaptation")
     , bandAwareToggle ("Band Aware", "let each band move on its own")
-    , adaptiveModeToggle ("Adaptive Mode", "follow program material more actively")
-    , syncModeChoice ("Sync Mode", "free run or host-synced motion")
+    , adaptiveModeToggle ("Adaptive Mode", "program-aware motion")
+    , syncModeChoice ("Sync Mode", "free or host-synced")
 {
     juce::ignoreUnused (rnboObject);
 
@@ -527,16 +547,16 @@ void CustomAudioEditor::resized()
                 { &lowKnob, &bodyKnob, &airKnob },
                 3);
 
-    auto behaviorTop = behaviorBounds.removeFromTop ((behaviorBounds.getHeight() - 12) / 2);
-    behaviorBounds.removeFromTop (12);
+    const int behaviorGap = 12;
+    const int sideControlWidth = 112;
+    auto leftBehavior = behaviorBounds.removeFromLeft (sideControlWidth);
+    behaviorBounds.removeFromLeft (behaviorGap);
+    auto rightBehavior = behaviorBounds.removeFromRight (sideControlWidth);
+    behaviorBounds.removeFromRight (behaviorGap);
 
-    layoutGrid (behaviorTop,
-                { &adaptiveModeToggle, &syncModeChoice },
-                2);
-
-    layoutGrid (behaviorBounds,
-                { &adaptiveAlphaKnob },
-                1);
+    adaptiveModeToggle.setBounds (leftBehavior);
+    adaptiveAlphaKnob.setBounds (behaviorBounds);
+    syncModeChoice.setBounds (rightBehavior);
 
     layoutGrid (bandsBounds,
                 { &lowSplitKnob, &highSplitKnob, &bandAwareToggle },
