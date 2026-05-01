@@ -52,6 +52,13 @@ void layoutGrid (juce::Rectangle<int> area,
         ++index;
     }
 }
+
+juce::Path createRoundedClipPath (juce::Rectangle<float> bounds, float cornerRadius)
+{
+    juce::Path path;
+    path.addRoundedRectangle (bounds, cornerRadius);
+    return path;
+}
 }
 
 void SurgeLookAndFeel::drawRotarySlider (juce::Graphics& g,
@@ -380,6 +387,170 @@ void ChoiceControl::resized()
     comboBox.setBounds (area.removeFromTop (34));
 }
 
+BandModeControl::BandModeControl (juce::String titleText, juce::String hintText)
+{
+    titleLabel.setText (titleText, juce::dontSendNotification);
+    titleLabel.setJustificationType (juce::Justification::centredLeft);
+    styleLabel (titleLabel, 13.0f, true, textSecondary);
+    addAndMakeVisible (titleLabel);
+
+    hintLabel.setText (hintText, juce::dontSendNotification);
+    hintLabel.setJustificationType (juce::Justification::centredLeft);
+    styleLabel (hintLabel, 11.0f, false, textMuted);
+    addAndMakeVisible (hintLabel);
+}
+
+void BandModeControl::setMode (Mode newMode)
+{
+    if (mode == newMode)
+        return;
+
+    mode = newMode;
+    repaint();
+}
+
+void BandModeControl::setChangeHandler (ChangeHandler handler)
+{
+    onChange = std::move (handler);
+}
+
+void BandModeControl::paint (juce::Graphics& g)
+{
+    auto bounds = getSegmentBounds().toFloat().reduced (1.0f);
+    const auto cornerRadius = bounds.getHeight() * 0.5f;
+
+    g.setColour (juce::Colours::black.withAlpha (0.16f));
+    g.fillRoundedRectangle (bounds.translated (0.0f, 3.0f), cornerRadius);
+
+    juce::ColourGradient baseGradient (juce::Colour (0xff243240).brighter (0.1f),
+                                       bounds.getTopLeft(),
+                                       juce::Colour (0xff243240).darker (0.16f),
+                                       bounds.getBottomRight(),
+                                       false);
+    g.setGradientFill (baseGradient);
+    g.fillRoundedRectangle (bounds, cornerRadius);
+
+    auto clipPath = createRoundedClipPath (bounds, cornerRadius);
+    auto segmentWidth = bounds.getWidth() / 3.0f;
+
+    {
+        juce::Graphics::ScopedSaveState state (g);
+        g.reduceClipRegion (clipPath);
+
+        for (int index = 0; index < 3; ++index)
+        {
+            auto segment = juce::Rectangle<float> (bounds.getX() + segmentWidth * (float) index,
+                                                   bounds.getY(),
+                                                   index == 2 ? bounds.getRight() - (bounds.getX() + segmentWidth * 2.0f) : segmentWidth,
+                                                   bounds.getHeight());
+
+            const bool selected = index == static_cast<int> (mode);
+            const bool hovered = index == hoveredSegment;
+
+            if (!selected && !hovered)
+                continue;
+
+            auto fill = selected ? accent : juce::Colour (0xff2f4151);
+            if (hovered)
+                fill = fill.brighter (0.08f);
+
+            juce::ColourGradient selectedGradient (fill.brighter (0.12f),
+                                                   segment.getTopLeft(),
+                                                   fill.darker (0.16f),
+                                                   segment.getBottomRight(),
+                                                   false);
+            g.setGradientFill (selectedGradient);
+            g.fillRect (segment);
+        }
+    }
+
+    g.setColour (panelOutline);
+    g.drawRoundedRectangle (bounds, cornerRadius, 1.0f);
+
+    g.setColour (juce::Colours::white.withAlpha (0.08f));
+    g.drawLine (bounds.getX() + segmentWidth, bounds.getY() + 5.0f, bounds.getX() + segmentWidth, bounds.getBottom() - 5.0f, 1.0f);
+    g.drawLine (bounds.getX() + segmentWidth * 2.0f, bounds.getY() + 5.0f, bounds.getX() + segmentWidth * 2.0f, bounds.getBottom() - 5.0f, 1.0f);
+
+    static const juce::String labels[] { "1 Band", "2 Bands", "3 Bands" };
+
+    for (int index = 0; index < 3; ++index)
+    {
+        auto segment = juce::Rectangle<int> ((int) std::round (bounds.getX() + segmentWidth * (float) index),
+                                             (int) std::round (bounds.getY()),
+                                             (int) std::round (index == 2 ? bounds.getRight() - (bounds.getX() + segmentWidth * 2.0f) : segmentWidth),
+                                             (int) std::round (bounds.getHeight()));
+
+        const bool selected = index == static_cast<int> (mode);
+        g.setColour (selected ? textPrimary : textSecondary);
+        g.setFont (juce::Font (juce::FontOptions (13.0f, juce::Font::bold)));
+        g.drawFittedText (labels[index], segment, juce::Justification::centred, 1);
+    }
+}
+
+void BandModeControl::resized()
+{
+    auto area = getLocalBounds().reduced (6);
+    titleLabel.setBounds (area.removeFromTop (18));
+    hintLabel.setBounds (area.removeFromBottom (16));
+}
+
+void BandModeControl::mouseUp (const juce::MouseEvent& event)
+{
+    const auto clickedSegment = getSegmentIndexAt (event.getPosition());
+
+    if (clickedSegment < 0)
+        return;
+
+    const auto newMode = static_cast<Mode> (clickedSegment);
+    setMode (newMode);
+
+    if (onChange != nullptr)
+        onChange (newMode);
+}
+
+void BandModeControl::mouseMove (const juce::MouseEvent& event)
+{
+    const auto newHoveredSegment = getSegmentIndexAt (event.getPosition());
+
+    if (hoveredSegment == newHoveredSegment)
+        return;
+
+    hoveredSegment = newHoveredSegment;
+    setMouseCursor (hoveredSegment >= 0 ? juce::MouseCursor::PointingHandCursor
+                                        : juce::MouseCursor::NormalCursor);
+    repaint();
+}
+
+void BandModeControl::mouseExit (const juce::MouseEvent&)
+{
+    if (hoveredSegment < 0)
+        return;
+
+    hoveredSegment = -1;
+    setMouseCursor (juce::MouseCursor::NormalCursor);
+    repaint();
+}
+
+juce::Rectangle<int> BandModeControl::getSegmentBounds() const
+{
+    auto area = getLocalBounds().reduced (6);
+    area.removeFromTop (18);
+    area.removeFromBottom (16);
+    return area.removeFromTop (34);
+}
+
+int BandModeControl::getSegmentIndexAt (juce::Point<int> position) const
+{
+    auto bounds = getSegmentBounds();
+
+    if (!bounds.contains (position))
+        return -1;
+
+    const auto relativeX = position.x - bounds.getX();
+    const auto segmentWidth = juce::jmax (1, bounds.getWidth() / 3);
+    return juce::jlimit (0, 2, relativeX / segmentWidth);
+}
+
 CustomAudioEditor::CustomAudioEditor (RNBO::JuceAudioProcessor* p, RNBO::CoreObject& rnboObject)
     : juce::AudioProcessorEditor (p)
     , audioProcessor (*p)
@@ -398,7 +569,7 @@ CustomAudioEditor::CustomAudioEditor (RNBO::JuceAudioProcessor* p, RNBO::CoreObj
     , lowSplitKnob ("Low Split", "where the low band ends")
     , highSplitKnob ("High Split", "where the high band starts")
     , adaptiveAlphaKnob ("Adaptive Alpha", "smoothness of adaptation")
-    , bandAwareToggle ("Band Aware", "let each band move on its own")
+    , bandModeSwitch ("Band Mode", "pick the number of reactive regions")
     , adaptiveModeToggle ("Adaptive Mode", "program-aware motion")
     , syncModeChoice ("Sync Mode", "free or host-synced")
 {
@@ -415,7 +586,7 @@ CustomAudioEditor::CustomAudioEditor (RNBO::JuceAudioProcessor* p, RNBO::CoreObj
     subtitleLabel.setJustificationType (juce::Justification::centredLeft);
     styleLabel (subtitleLabel, 14.0f, false, textSecondary);
 
-    footerLabel.setText ("Tip: Start with Amount, Speed, and Body. Use the split points with Band Aware to make the motion react differently across the spectrum.",
+    footerLabel.setText ("Tip: Choose 1, 2, or 3 bands first, then fine-tune the split points until the motion sits where you want it.",
                          juce::dontSendNotification);
     footerLabel.setJustificationType (juce::Justification::centredLeft);
     styleLabel (footerLabel, 12.0f, false, textMuted);
@@ -439,7 +610,7 @@ CustomAudioEditor::CustomAudioEditor (RNBO::JuceAudioProcessor* p, RNBO::CoreObj
              static_cast<juce::Component*> (&lowSplitKnob),
              static_cast<juce::Component*> (&highSplitKnob),
              static_cast<juce::Component*> (&adaptiveAlphaKnob),
-             static_cast<juce::Component*> (&bandAwareToggle),
+             static_cast<juce::Component*> (&bandModeSwitch),
              static_cast<juce::Component*> (&adaptiveModeToggle),
              static_cast<juce::Component*> (&syncModeChoice)
          })
@@ -448,7 +619,7 @@ CustomAudioEditor::CustomAudioEditor (RNBO::JuceAudioProcessor* p, RNBO::CoreObj
     }
 
     sliderAttachments.reserve (11);
-    buttonAttachments.reserve (2);
+    buttonAttachments.reserve (1);
     comboAttachments.reserve (1);
 
     sliderAttachments.push_back (std::make_unique<juce::SliderParameterAttachment> (getParameter ("amount"), amountKnob.getSlider(), nullptr));
@@ -463,7 +634,6 @@ CustomAudioEditor::CustomAudioEditor (RNBO::JuceAudioProcessor* p, RNBO::CoreObj
     sliderAttachments.push_back (std::make_unique<juce::SliderParameterAttachment> (getParameter ("high_split"), highSplitKnob.getSlider(), nullptr));
     sliderAttachments.push_back (std::make_unique<juce::SliderParameterAttachment> (getParameter ("adaptive_alpha"), adaptiveAlphaKnob.getSlider(), nullptr));
 
-    buttonAttachments.push_back (std::make_unique<juce::ButtonParameterAttachment> (getParameter ("band_surge"), bandAwareToggle.getButton(), nullptr));
     buttonAttachments.push_back (std::make_unique<juce::ButtonParameterAttachment> (getParameter ("adaptive_mode"), adaptiveModeToggle.getButton(), nullptr));
 
     syncModeChoice.getComboBox().addItemList (juce::StringArray { "Free", "Synced" }, 1);
@@ -484,11 +654,32 @@ CustomAudioEditor::CustomAudioEditor (RNBO::JuceAudioProcessor* p, RNBO::CoreObj
     lowSplitKnob.getSlider().setSkewFactorFromMidPoint (400.0);
     highSplitKnob.getSlider().setSkewFactorFromMidPoint (1200.0);
 
+    bandModeSwitch.setChangeHandler ([this] (BandModeControl::Mode selectedMode)
+    {
+        switch (selectedMode)
+        {
+            case BandModeControl::Mode::oneBand:
+                applyBandMode (BandMode::oneBand);
+                break;
+            case BandModeControl::Mode::twoBands:
+                applyBandMode (BandMode::twoBands);
+                break;
+            case BandModeControl::Mode::threeBands:
+                applyBandMode (BandMode::threeBands);
+                break;
+        }
+    });
+
+    setParameterValue ("band_surge", 1.0f);
+    syncBandModeControl();
+    startTimerHz (20);
+
     setSize (980, 660);
 }
 
 CustomAudioEditor::~CustomAudioEditor()
 {
+    stopTimer();
     setLookAndFeel (nullptr);
 }
 
@@ -558,9 +749,13 @@ void CustomAudioEditor::resized()
     adaptiveAlphaKnob.setBounds (behaviorBounds);
     syncModeChoice.setBounds (rightBehavior);
 
+    auto bandModeBounds = bandsBounds.removeFromTop (74);
+    bandModeSwitch.setBounds (bandModeBounds);
+    bandsBounds.removeFromTop (10);
+
     layoutGrid (bandsBounds,
-                { &lowSplitKnob, &highSplitKnob, &bandAwareToggle },
-                3);
+                { &lowSplitKnob, &highSplitKnob },
+                2);
 }
 
 juce::RangedAudioParameter& CustomAudioEditor::getParameter (const juce::String& parameterID) const
@@ -576,6 +771,86 @@ juce::RangedAudioParameter& CustomAudioEditor::getParameter (const juce::String&
 
     jassertfalse;
     return *dynamic_cast<juce::RangedAudioParameter*> (audioProcessor.getParameters()[0]);
+}
+
+float CustomAudioEditor::getParameterValue (const juce::String& parameterID) const
+{
+    auto& parameter = getParameter (parameterID);
+    return parameter.convertFrom0to1 (parameter.getValue());
+}
+
+void CustomAudioEditor::setParameterValue (const juce::String& parameterID, float value)
+{
+    auto& parameter = getParameter (parameterID);
+    const auto normalisedValue = parameter.convertTo0to1 (value);
+
+    parameter.beginChangeGesture();
+    parameter.setValueNotifyingHost (normalisedValue);
+    parameter.endChangeGesture();
+}
+
+CustomAudioEditor::BandMode CustomAudioEditor::getBandModeFromParameters() const
+{
+    constexpr float offThreshold = 0.5f;
+
+    const auto lowSplit = getParameterValue ("low_split");
+    const auto highSplit = getParameterValue ("high_split");
+
+    if (lowSplit <= offThreshold && highSplit <= offThreshold)
+        return BandMode::oneBand;
+
+    if (highSplit <= offThreshold)
+        return BandMode::twoBands;
+
+    return BandMode::threeBands;
+}
+
+void CustomAudioEditor::applyBandMode (BandMode mode)
+{
+    setParameterValue ("band_surge", 1.0f);
+
+    switch (mode)
+    {
+        case BandMode::oneBand:
+            setParameterValue ("low_split", 0.0f);
+            setParameterValue ("high_split", 0.0f);
+            break;
+
+        case BandMode::twoBands:
+            setParameterValue ("low_split", 800.0f);
+            setParameterValue ("high_split", 0.0f);
+            break;
+
+        case BandMode::threeBands:
+            setParameterValue ("low_split", 800.0f);
+            setParameterValue ("high_split", 2000.0f);
+            break;
+    }
+
+    syncBandModeControl();
+}
+
+void CustomAudioEditor::syncBandModeControl()
+{
+    switch (getBandModeFromParameters())
+    {
+        case BandMode::oneBand:
+            bandModeSwitch.setMode (BandModeControl::Mode::oneBand);
+            break;
+
+        case BandMode::twoBands:
+            bandModeSwitch.setMode (BandModeControl::Mode::twoBands);
+            break;
+
+        case BandMode::threeBands:
+            bandModeSwitch.setMode (BandModeControl::Mode::threeBands);
+            break;
+    }
+}
+
+void CustomAudioEditor::timerCallback()
+{
+    syncBandModeControl();
 }
 
 juce::String CustomAudioEditor::formatPercent (double value)

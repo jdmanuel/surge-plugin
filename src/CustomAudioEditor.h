@@ -100,7 +100,43 @@ private:
     juce::ComboBox comboBox;
 };
 
-class CustomAudioEditor : public juce::AudioProcessorEditor
+class BandModeControl : public juce::Component
+{
+public:
+    enum class Mode
+    {
+        oneBand = 0,
+        twoBands,
+        threeBands
+    };
+
+    using ChangeHandler = std::function<void(Mode)>;
+
+    BandModeControl (juce::String titleText, juce::String hintText);
+
+    void setMode (Mode newMode);
+    Mode getMode() const noexcept { return mode; }
+    void setChangeHandler (ChangeHandler handler);
+
+    void paint (juce::Graphics&) override;
+    void resized() override;
+    void mouseUp (const juce::MouseEvent&) override;
+    void mouseMove (const juce::MouseEvent&) override;
+    void mouseExit (const juce::MouseEvent&) override;
+
+private:
+    juce::Rectangle<int> getSegmentBounds() const;
+    int getSegmentIndexAt (juce::Point<int> position) const;
+
+    juce::Label titleLabel;
+    juce::Label hintLabel;
+    Mode mode { Mode::threeBands };
+    int hoveredSegment = -1;
+    ChangeHandler onChange;
+};
+
+class CustomAudioEditor : public juce::AudioProcessorEditor,
+                          private juce::Timer
 {
 public:
     CustomAudioEditor (RNBO::JuceAudioProcessor* p, RNBO::CoreObject& rnboObject);
@@ -110,7 +146,20 @@ public:
     void resized() override;
 
 private:
+    enum class BandMode
+    {
+        oneBand = 0,
+        twoBands,
+        threeBands
+    };
+
     juce::RangedAudioParameter& getParameter (const juce::String& parameterID) const;
+    float getParameterValue (const juce::String& parameterID) const;
+    void setParameterValue (const juce::String& parameterID, float value);
+    BandMode getBandModeFromParameters() const;
+    void applyBandMode (BandMode mode);
+    void syncBandModeControl();
+    void timerCallback() override;
 
     static juce::String formatPercent (double value);
     static juce::String formatFrequency (double value);
@@ -142,7 +191,7 @@ private:
     KnobControl highSplitKnob;
     KnobControl adaptiveAlphaKnob;
 
-    ToggleControl bandAwareToggle;
+    BandModeControl bandModeSwitch;
     ToggleControl adaptiveModeToggle;
     ChoiceControl syncModeChoice;
 
