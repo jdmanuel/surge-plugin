@@ -590,12 +590,12 @@ CustomAudioEditor::CustomAudioEditor (RNBO::JuceAudioProcessor* p, RNBO::CoreObj
     : juce::AudioProcessorEditor (p)
     , audioProcessor (*p)
     , motionCard ("Motion", "Dial in depth, pace, and overall feel.")
-    , toneCard ("Tone", "Balance the low end, body, and top sheen.")
+    , toneCard ("Tone", "Alter degree to which a band affects wave rate/depth.")
     , bandsCard ("Bands", "Shape how motion behaves across the spectrum.")
     , behaviorCard ("Behavior", "Control sync and adaptive response.")
     , amountKnob ("Amount", "overall movement depth")
     , speedKnob ("Speed", "rate of the surge")
-    , chopKnob ("Chop", "edginess of the motion")
+    , chopKnob ("Chop", "abruptness of transition")
     , sensitivityKnob ("Sensitivity", "how eagerly it reacts")
     , liftKnob ("Lift", "how much it opens up")
     , lowKnob ("Low", "weight and foundation")
@@ -605,7 +605,7 @@ CustomAudioEditor::CustomAudioEditor (RNBO::JuceAudioProcessor* p, RNBO::CoreObj
     , highSplitKnob ("High Split", "where the high band starts")
     , adaptiveAlphaKnob ("Adaptive Alpha", "smoothness of adaptation")
     , bandModeSwitch ("Band Mode", "pick the number of reactive regions")
-    , adaptiveModeToggle ("Adaptive Mode", "program-aware motion")
+    , adaptiveModeToggle ("Adaptive Mode", "program-aware motion (auto high/low cut)")
     , syncModeChoice ("Sync Mode", "free or host-synced")
 {
     juce::ignoreUnused (rnboObject);
@@ -617,7 +617,7 @@ CustomAudioEditor::CustomAudioEditor (RNBO::JuceAudioProcessor* p, RNBO::CoreObj
     titleLabel.setJustificationType (juce::Justification::centredLeft);
     styleLabel (titleLabel, 32.0f, true, textPrimary);
 
-    subtitleLabel.setText ("A focused editor for motion, crossover shaping, and tonal balance.", juce::dontSendNotification);
+    subtitleLabel.setText ("A band-aware tremolo motion effect.", juce::dontSendNotification);
     subtitleLabel.setJustificationType (juce::Justification::centredLeft);
     styleLabel (subtitleLabel, 14.0f, false, textSecondary);
 
