@@ -315,16 +315,50 @@ void KnobControl::setFormatter (Formatter formatter)
     updateValueLabel();
 }
 
+void KnobControl::setCompactLayout (bool shouldUseCompactLayout)
+{
+    compactLayout = shouldUseCompactLayout;
+    resized();
+}
+
 void KnobControl::resized()
 {
     auto area = getLocalBounds().reduced (4);
     titleLabel.setBounds (area.removeFromTop (20));
+
+    constexpr int knobDiameter = 84;
+    const auto sliderSize = juce::jmin (knobDiameter, juce::jmin (area.getWidth(), area.getHeight()));
+
+    if (compactLayout)
+    {
+        const int sliderTopGap = 8;
+        const int valueGap = 10;
+        const int hintGap = 6;
+        const int hintHeight = 16;
+        const int contentWidth = area.getWidth();
+        const int valueWidth = juce::jmin (96, contentWidth);
+
+        int currentY = area.getY() + sliderTopGap;
+        slider.setBounds (juce::Rectangle<int> (sliderSize, sliderSize)
+                              .withX (area.getCentreX() - sliderSize / 2)
+                              .withY (currentY));
+
+        currentY = slider.getBottom() + valueGap;
+        valueLabel.setBounds (juce::Rectangle<int> (valueWidth, 24)
+                                  .withCentre (juce::Point<int> (area.getCentreX(), currentY + 12)));
+
+        currentY = valueLabel.getBottom() + hintGap;
+        hintLabel.setBounds (juce::Rectangle<int> (contentWidth, hintHeight)
+                                 .withX (area.getX())
+                                 .withY (currentY));
+
+        return;
+    }
+
     hintLabel.setBounds (area.removeFromBottom (16));
     auto valueArea = area.removeFromBottom (24);
     area.removeFromBottom (4);
 
-    constexpr int knobDiameter = 84;
-    const auto sliderSize = juce::jmin (knobDiameter, juce::jmin (area.getWidth(), area.getHeight()));
     slider.setBounds (juce::Rectangle<int> (sliderSize, sliderSize).withCentre (area.getCentre()));
 
     const auto valueWidth = juce::jmin (96, valueArea.getWidth());
@@ -654,6 +688,10 @@ CustomAudioEditor::CustomAudioEditor (RNBO::JuceAudioProcessor* p, RNBO::CoreObj
 
     lowSplitKnob.getSlider().setSkewFactorFromMidPoint (400.0);
     highSplitKnob.getSlider().setSkewFactorFromMidPoint (1200.0);
+
+    lowKnob.setCompactLayout (true);
+    bodyKnob.setCompactLayout (true);
+    airKnob.setCompactLayout (true);
 
     bandModeSwitch.setChangeHandler ([this] (BandModeControl::Mode selectedMode)
     {

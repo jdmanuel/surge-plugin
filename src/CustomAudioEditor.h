@@ -57,6 +57,7 @@ public:
 
     juce::Slider& getSlider() { return slider; }
     void setFormatter (Formatter formatter);
+    void setCompactLayout (bool shouldUseCompactLayout);
 
     void resized() override;
 
@@ -66,6 +67,7 @@ private:
     juce::Label hintLabel;
     juce::Label valueLabel;
     juce::Slider slider;
+    bool compactLayout = false;
 };
 
 class ToggleControl : public juce::Component
