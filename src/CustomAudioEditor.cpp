@@ -319,11 +319,12 @@ void KnobControl::resized()
 {
     auto area = getLocalBounds().reduced (4);
     titleLabel.setBounds (area.removeFromTop (20));
-    hintLabel.setBounds (area.removeFromBottom (18));
-    auto valueArea = area.removeFromBottom (28);
-    area.removeFromBottom (6);
+    hintLabel.setBounds (area.removeFromBottom (16));
+    auto valueArea = area.removeFromBottom (24);
+    area.removeFromBottom (4);
 
-    const auto sliderSize = juce::jmin (area.getWidth(), area.getHeight());
+    constexpr int knobDiameter = 84;
+    const auto sliderSize = juce::jmin (knobDiameter, juce::jmin (area.getWidth(), area.getHeight()));
     slider.setBounds (juce::Rectangle<int> (sliderSize, sliderSize).withCentre (area.getCentre()));
 
     const auto valueWidth = juce::jmin (96, valueArea.getWidth());
@@ -674,7 +675,7 @@ CustomAudioEditor::CustomAudioEditor (RNBO::JuceAudioProcessor* p, RNBO::CoreObj
     syncBandModeControl();
     startTimerHz (20);
 
-    setSize (980, 660);
+    setSize (980, 720);
 }
 
 CustomAudioEditor::~CustomAudioEditor()
@@ -714,7 +715,9 @@ void CustomAudioEditor::resized()
     const auto contentWidth = area.getWidth();
     const int leftColumnWidth = juce::roundToInt ((contentWidth - gap) * 0.58f);
 
-    auto topRow = area.removeFromTop ((area.getHeight() - gap) / 2);
+    const int topRowHeight = juce::roundToInt ((area.getHeight() - gap) * 0.43f);
+    auto topRow = area.removeFromTop (topRowHeight);
+    area.removeFromTop (gap);
     auto bottomRow = area;
 
     motionCard.setBounds (topRow.removeFromLeft (leftColumnWidth));
@@ -751,7 +754,7 @@ void CustomAudioEditor::resized()
 
     auto bandModeBounds = bandsBounds.removeFromTop (74);
     bandModeSwitch.setBounds (bandModeBounds);
-    bandsBounds.removeFromTop (10);
+    bandsBounds.removeFromTop (8);
 
     layoutGrid (bandsBounds,
                 { &lowSplitKnob, &highSplitKnob },
