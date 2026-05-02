@@ -1,10 +1,21 @@
 # Surge JUCE Plugin
 
+If you are using a Mac (ARM or or Intel), try downloading the built/binary plugin from the releases page. You can use your DAWs plugin installer or copy it to your plugin directory. It's very likely -- especially if you do the latter -- that when your DAW tries to load the plugin, it will be blocked by Mac's quarantine process. This is because I haven't signed it as an official Apple Developer (will be doing that soon). You can get usually get around this by pulling it out of quarantine with:
+
+xattr -dr com.apple.quarantine ~/Library/Audio/Plug-Ins/VST3/Surge.vst3
+xattr -dr com.apple.quarantine ~/Library/Audio/Plug-Ins/Components/Surge.component
+
+You'll need to close and reopen your DAW. You might also need to clear the AU cache if using Logic:
+
+killall -9 AudioComponentRegistrar
+rm -f ~/Library/Caches/AudioUnitCache/com.apple.audiounits.cache
+rm -f ~/Library/Caches/AudioUnitCache/com.apple.audiounits.sandboxed.cache
+
+You can also just build this yourself. That will avoid the signing issue since binaries built locally don't need to be signed.
+
 This repository contains the JUCE wrapper, custom editor, and committed RNBO C++ export needed to build the `Surge` plugin.
 
 You do not need Max or RNBO just to build the plugin from this repository.
-
-You only need Max + RNBO if you want to modify the patch and regenerate the contents of `export/`.
 
 ## Repository Layout
 
