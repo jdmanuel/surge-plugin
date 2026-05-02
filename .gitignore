@@ -1,5 +1,9 @@
 .DS_Store
+.idea/
+.vscode/
 build/
-!/build/.gitkeep
-.vscode
-export/*
+cmake-build-*/
+*.component
+*.pkg
+*.vst3
+*.zip

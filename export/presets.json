@@ -1,0 +1,52 @@
+[
+  {
+    "name": "Surge.rnbopat",
+    "preset": {
+      "__sps": {
+        "fft_analysis": {}
+      },
+      "adaptive_alpha": {
+        "value": 0.36456692913385824
+      },
+      "adaptive_mode": {
+        "value": 0
+      },
+      "air": {
+        "value": 0.49606299212598426
+      },
+      "amount": {
+        "value": 0.889763779527559
+      },
+      "band_surge": {
+        "value": 1
+      },
+      "body": {
+        "value": 0.49606299212598426
+      },
+      "chop": {
+        "value": 0.7007874015748031
+      },
+      "high_split": {
+        "value": 0
+      },
+      "lift": {
+        "value": 0.19685039370078738
+      },
+      "low": {
+        "value": 0.49606299212598426
+      },
+      "low_split": {
+        "value": 0
+      },
+      "sensitivity": {
+        "value": 0.7795275590551181
+      },
+      "speed": {
+        "value": 0.6692913385826772
+      },
+      "sync_mode": {
+        "value": 1
+      }
+    }
+  }
+]

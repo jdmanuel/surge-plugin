@@ -3,18 +3,43 @@ cmake_minimum_required(VERSION 3.22) #JUCE 8 requires CMake 3.22+
 # On M1 Macs, uncomment to enable universal binaries
 # set(CMAKE_OSX_ARCHITECTURES "x86_64;arm64" CACHE STRING "")
 
-set(CMAKE_BUILD_TYPE Debug CACHE STRING "Choose the type of build, options are: Debug Release")
+if (NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE Release CACHE STRING "Choose the type of build, options are: Debug Release RelWithDebInfo MinSizeRel" FORCE)
+endif()
 
-project(RNBO_JUCE_EXAMPLE VERSION 2.0.0)
+project(Surge VERSION 2.0.0)
 
 set(CMAKE_CXX_STANDARD 17) #JUCE 8 requires 17
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_COLOR_MAKEFILE ON)
 set(CMAKE_COLOR_DIAGNOSTICS ON)
 
-set(RNBO_CPP_DIR "/Users/josephmanuel/Dropbox/Max/Exports/surge-juce/export/rnbo/" CACHE FILEPATH "The path to the the RNBO c++ source directory")
-set(RNBO_EXPORT_DIR "/Users/josephmanuel/Dropbox/Max/Exports/surge-juce/export/" CACHE FILEPATH "path to your export directory")
-set(RNBO_CLASS_FILE_NAME "Surge.rnbopat.cpp" CACHE STRING "the name of your rnbo class file")
+if (NOT DEFINED RNBO_EXPORT_DIR OR RNBO_EXPORT_DIR STREQUAL "")
+  if (DEFINED ENV{RNBO_EXPORT_DIR} AND NOT "$ENV{RNBO_EXPORT_DIR}" STREQUAL "")
+    file(TO_CMAKE_PATH "$ENV{RNBO_EXPORT_DIR}" RNBO_EXPORT_DIR)
+  else()
+    set(RNBO_EXPORT_DIR "${CMAKE_CURRENT_LIST_DIR}/export")
+  endif()
+endif()
+set(RNBO_EXPORT_DIR "${RNBO_EXPORT_DIR}" CACHE FILEPATH "Path to the RNBO export directory")
+
+if (NOT DEFINED RNBO_CPP_DIR OR RNBO_CPP_DIR STREQUAL "")
+  if (DEFINED ENV{RNBO_CPP_DIR} AND NOT "$ENV{RNBO_CPP_DIR}" STREQUAL "")
+    file(TO_CMAKE_PATH "$ENV{RNBO_CPP_DIR}" RNBO_CPP_DIR)
+  else()
+    set(RNBO_CPP_DIR "${RNBO_EXPORT_DIR}/rnbo")
+  endif()
+endif()
+set(RNBO_CPP_DIR "${RNBO_CPP_DIR}" CACHE FILEPATH "Path to the RNBO C++ source directory")
+
+if (NOT DEFINED RNBO_CLASS_FILE_NAME OR RNBO_CLASS_FILE_NAME STREQUAL "")
+  if (DEFINED ENV{RNBO_CLASS_FILE_NAME} AND NOT "$ENV{RNBO_CLASS_FILE_NAME}" STREQUAL "")
+    set(RNBO_CLASS_FILE_NAME "$ENV{RNBO_CLASS_FILE_NAME}")
+  else()
+    set(RNBO_CLASS_FILE_NAME "Surge.rnbopat.cpp")
+  endif()
+endif()
+set(RNBO_CLASS_FILE_NAME "${RNBO_CLASS_FILE_NAME}" CACHE STRING "The name of the RNBO class file")
 mark_as_advanced(RNBO_CLASS_FILE_NAME)
 
 set(RNBO_CLASS_NAME "rnbomatic")
@@ -24,6 +49,34 @@ set(RNBO_PRESETS_FILE "${RNBO_EXPORT_DIR}/presets.json")
 set(RNBO_BINARY_DATA_FILE "${RNBO_EXPORT_DIR}/${RNBO_CLASS_NAME}_binary.cpp")
 set(RNBO_BINARY_DATA_STORAGE_NAME "${RNBO_CLASS_NAME}_binary")
 set(PLUGIN_PARAM_DEFAULT_NOTIFY ON CACHE BOOL "Should parameter changes from inside your rnbo patch send output by default?")
+
+message(STATUS "RNBO export directory: ${RNBO_EXPORT_DIR}")
+message(STATUS "RNBO C++ directory: ${RNBO_CPP_DIR}")
+message(STATUS "RNBO class file: ${RNBO_CLASS_FILE_NAME}")
+
+if (NOT EXISTS "${RNBO_EXPORT_DIR}")
+  message(FATAL_ERROR
+    "RNBO export directory not found: ${RNBO_EXPORT_DIR}\n"
+    "Commit the repo-local export/ directory, or set RNBO_EXPORT_DIR to a valid export folder.")
+endif()
+
+if (NOT EXISTS "${RNBO_CPP_DIR}/RNBO.h")
+  message(FATAL_ERROR
+    "RNBO runtime not found: ${RNBO_CPP_DIR}/RNBO.h\n"
+    "Set RNBO_CPP_DIR explicitly or make sure RNBO_EXPORT_DIR points to a valid RNBO export.")
+endif()
+
+if (NOT EXISTS "${RNBO_CLASS_FILE}")
+  message(FATAL_ERROR
+    "RNBO class file not found: ${RNBO_CLASS_FILE}\n"
+    "Set RNBO_CLASS_FILE_NAME or point RNBO_EXPORT_DIR at the correct export folder.")
+endif()
+
+if (NOT EXISTS "${CMAKE_CURRENT_LIST_DIR}/thirdparty/juce/CMakeLists.txt")
+  message(FATAL_ERROR
+    "JUCE submodule not found at ${CMAKE_CURRENT_LIST_DIR}/thirdparty/juce\n"
+    "Clone with --recurse-submodules or run: git submodule update --init --recursive")
+endif()
 
 #write description header file if description.json exists, sets RNBO_INCLUDE_DESCRIPTION_FILE if the file exists
 include(${RNBO_CPP_DIR}/cmake/RNBODescriptionHeader.cmake)
