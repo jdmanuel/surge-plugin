@@ -48,12 +48,6 @@ If you use Homebrew, you can install CMake with:
 brew install cmake
 ```
 
-Optional but recommended:
-
-```sh
-brew install ninja
-```
-
 ### Windows
 
 Install:
@@ -62,17 +56,6 @@ Install:
 - `CMake` 3.22 or newer
 - Visual Studio 2022 with the Desktop C++ workload
 
-Optional but recommended:
-
-- `Ninja`
-
-### Optional authoring tools
-
-If you want to regenerate the RNBO export instead of just building the plugin, you will also need:
-
-- Max
-- RNBO
-
 ## Build From Source
 
 ### 1. Clone the repository
@@ -80,7 +63,7 @@ If you want to regenerate the RNBO export instead of just building the plugin, y
 Clone with submodules so JUCE is included:
 
 ```sh
-git clone --recurse-submodules https://github.com/YOURNAME/surge-juce.git
+git clone --recurse-submodules https://github.com/jdmanuel/surge-plugin
 cd surge-juce
 ```
 
@@ -200,15 +183,6 @@ cmake -S . -B build \
 ```
 
 `RNBO_CPP_DIR` defaults to `${RNBO_EXPORT_DIR}/rnbo`, so in many cases you only need to override `RNBO_EXPORT_DIR`.
-
-## Regenerating the RNBO Export
-
-If you are editing the patch in Max/RNBO:
-
-1. Open the patch in Max.
-2. Export the RNBO C++ source into this repository's `export/` directory.
-3. Keep the exported class filename as `Surge.rnbopat.cpp`, or update `RNBO_CLASS_FILE_NAME` if you choose a different name.
-4. Re-run the build steps above.
 
 ## Signing Notes
 
